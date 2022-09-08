@@ -25,18 +25,6 @@ void ppa_setup(mpz_t N, mpz_t sk[], const uint32_t keysize, const uint32_t n_sen
 	gmp_printf("Preparing to find primes\n");
 #endif
 	mpz_nextprime(p, p);
-/*	// Generate a prime p
-	while(true)
-	{
-		if (mpz_probab_prime_p(p, 30))
-		{
-#ifdef DEBUG
-			gmp_printf("Found prime p\n");
-#endif
-			break;
-		}
-	}
-*/
 #ifdef DEBUG
 	gmp_printf("Value for prime p: %Zd\n", p);
 #endif
@@ -44,14 +32,6 @@ void ppa_setup(mpz_t N, mpz_t sk[], const uint32_t keysize, const uint32_t n_sen
 	// Set q to a random value with keysize/2 bits
 	mpz_urandomb(q, state, keysize/2);
 	mpz_nextprime(q, q);
-/*
-	//Generate a prime q
-	while(true)
-	{
-		if (mpz_probab_prime_p(q, 30))
-			break;
-	}
-*/
 #ifdef DEBUG
 	gmp_printf("Value for prime q: %Zd\n", q);
 #endif
@@ -84,7 +64,7 @@ void ppa_encrypt(mpz_t c, const mpz_t ski, const mpz_t x, const mpz_t t, const m
 
 	// Take modular power of the hash digest with the user key ski
 	mpz_powm(c, digest, ski, N2);
-	// NB! TRY TO DO THIS BY MULTIPLYING? Geometric series expansion
+	// NB! TRY TO DO THIS BY MULTIPLYING? Take advantage of the binomial theorem
 	
 	// Multiply with (1 + xN)
 	mpz_t tmp;
