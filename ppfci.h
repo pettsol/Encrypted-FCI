@@ -17,7 +17,8 @@ void sensor_encrypt(
 		gmp_randstate_t rand_state,
 		he_ct *C_tr,
 		he_ct C_P[], 
-		he_ct C_Px[], 
+		he_ct C_Px[],
+	        const mpz_t Pm[],	
 		const mpz_t P[], 
 		const mpz_t Px[],
 		const mpz_t usk,
@@ -51,11 +52,17 @@ void encrypted_fci(
 		const uint32_t n_sensors);
 
 void decrypt(
-		mpz_t P0[], 
-		mpz_t P0x0[], 
-		const mpz_t c_P0[], 
-		const mpz_t c_x0[], 
-		const uint32_t dim);
+		mpz_t P0[],
+		mpz_t P0x0[],
+	        mpz_t label,
+		const mpz_t c_P0[],
+		const mpz_t c_x0[],
+		const mpz_t upk[],
+		const mpz_t msk,
+		const mpz_t y,
+		const uint32_t msgsize,
+		const uint32_t dim,
+		const uint32_t n_sensors);
 
 void normalize(void);
 
