@@ -7,27 +7,46 @@
 #define PPFCI_H
 
 #include "muLabeledHE/mu_labeled_he.h"
+#include "privacy_preserving_aggregation/ppa.h"
 #include <gmp.h>
 #include <stdint.h>
 
 void sensor_encrypt(
 		mpz_t c_tr, 
-		he_ct C_tr[], 
+		mpz_t label,
+		gmp_randstate_t rand_state,
+		he_ct *C_tr,
 		he_ct C_P[], 
 		he_ct C_Px[], 
 		const mpz_t P[], 
-		const mpz_t Px[], 
+		const mpz_t Px[],
+		const mpz_t usk,
+		const mpz_t y,
+		const mpz_t N,
+		const mpz_t ski,
+		const mpz_t timestep,
+		const mpz_t ppaN,
+		const mpz_t ppaN2,
+		const uint32_t msgsize,	
 		const uint32_t dim, 
 		const uint32_t n_sensors);
 
 void encrypted_fci(
 		mpz_t c_P0[], 
 		mpz_t c_P0x0[], 
-		mpz_t m_den, 
+		mpz_t m_den,
+	        gmp_randstate_t rand_state,
+		const mpz_t sk0,
+		const mpz_t timestep,
+		const mpz_t y,
+		const mpz_t N,
+		const mpz_t ppaN,
+		const mpz_t ppaN2,	
 		const mpz_t c_tr[], 
 		const he_ct C_tr[], 
 		const he_ct C_P[], 
-		const he_ct C_Px[], 
+		const he_ct C_Px[],
+	        const uint32_t msgsize,	
 		const uint32_t dim, 
 		const uint32_t n_sensors);
 
@@ -38,6 +57,6 @@ void decrypt(
 		const mpz_t c_x0[], 
 		const uint32_t dim);
 
-void normalize(?);
+void normalize(void);
 
 #endif
