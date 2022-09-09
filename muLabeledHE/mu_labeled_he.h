@@ -1,7 +1,7 @@
 #ifndef MU_LABELED_HE_H
 #define MU_LABELED_HE_H
 
-#include "../HC-128/hc128.h"
+#include "../privacy_preserving_aggregation/SHA-256/sha-256.h"
 
 #include <gmp.h>
 
@@ -29,9 +29,9 @@ void mu_he_keygen(
 void mu_he_encrypt(
 		he_ct *c,
                 gmp_randstate_t state,
-                hc128_state *hc_cs,
 		mpz_t b,
-                const mpz_t m,
+                const mpz_t usk,
+		const mpz_t m,
                 const mpz_t y,
                 const mpz_t N,
                 const mpz_t label,

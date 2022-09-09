@@ -1,6 +1,5 @@
 #include "mu_labeled_he.h"
-#include "../joye_libert/joye_libert.h"
-#include "../HC-128/hc128.h"
+#include "../joye_libert_journal/joye_libert.h"
 
 #include <iostream>
 
@@ -41,8 +40,8 @@ void mu_he_keygen(
 void mu_he_encrypt(
 		he_ct *c,
 		gmp_randstate_t state,
-		hc128_state *hc_cs,
 		mpz_t b,
+		const mpz_t usk,
 		const mpz_t m,
 		const mpz_t y,
 		const mpz_t N,
@@ -59,19 +58,26 @@ void mu_he_encrypt(
 	// I cannot pass an mpz_t as b. I need to convert to a uint32_t array, and then
 	// convert back. I need to interpret the label as a 16 byte array, encrypt it,
 	// and then load the encrypted value back into b.
-	
-	// Declare array
-	uint8_t keystream[msgsize/8];
+
+	// Add label and usk
+	mpz_t input;
+	mpz_init(input);
+	mpz_add(input, usk, label);
+
+	// Declare digest array
+	uint8_t digest[32];
 
 	// Load label into the array
-        size_t size = (mpz_sizeinbase(label, 2) + CHAR_BIT-1)/CHAR_BIT;
-        mpz_export(keystream, &size, 1, 1, 0, 0, label);
+        size_t size = (mpz_sizeinbase(input, 2) + CHAR_BIT-1)/CHAR_BIT;
+        uint8_t input_array[size] = {0};
+	mpz_export(input_array, &size, 1, 1, 0, 0, input);
 	
-	// Encrypt the array
-	hc128_process_packet(hc_cs, keystream, keystream, msgsize/8);
+	// Compute the digest
+	sha256_process_message(digest, input_array, size);
+	//hc128_process_packet(hc_cs, keystream, keystream, msgsize/8);
 	
 	// Import it back as an mpz_t
-	mpz_import(b, msgsize/32, 1, 4, 0, 0, keystream);
+	mpz_import(b, msgsize/32, 1, 4, 0, 0, digest);
 
 	gmp_printf("b: %Zd\n", b);
 
