@@ -5,14 +5,42 @@
 #include "ppfci.h"
 #include "joye_libert_journal/joye_libert.h"
 
-void sensor_encrypt(
+void ppfci_setup(
+		gmp_randstate_t rand_state,
+		mpz_t y,
+		mpz_t p,
+		mpz_t N,
+		mpz_t ppaN,
+		mpz_t upk[],
+		mpz_t usk[],
+		mpz_t sk[],
+		const uint32_t msgsize,
+		const uint32_t keysize,
+		const uint32_t n_sensors)
+{
+	// Generate ppa keys
+	ppa_setup(ppaN, sk, keysize, n_sensors);
+
+	// Generate mu-labhe master keys
+	// mpk = (y, N)
+	// msk = (y, p)
+	mu_he_setup(N, y, p, msgsize, keysize);
+
+	// Generate mu-labhe user keys
+	for (int i = 0; i < n_sensors; i++)
+	{
+		mu_he_keygen(upk[i], usk[i], rand_state, N, y, msgsize);
+	}
+}
+
+void ppfci_sensor_encrypt(
 		mpz_t c_tr,
 		mpz_t label,
 		gmp_randstate_t rand_state,
 		he_ct *C_tr,
 		he_ct C_P[],
 		he_ct C_Px[],
-		const mpz_t Pm[];
+		const mpz_t Pm[],
 		const mpz_t P[],
 		const mpz_t Px[],
 		const mpz_t usk,
@@ -26,9 +54,6 @@ void sensor_encrypt(
 		const uint32_t dim, 
 		const uint32_t n_sensors)
 {
-	//! NB! Trace is computed from original matrix, the rest is done on the inverse matrix
-
-
 	// Compute the trace of P
 	mpz_t trace;
 	mpz_init_set_ui(trace, 0);
@@ -66,7 +91,7 @@ void sensor_encrypt(
 	}
 }
 
-void encrypted_fci(
+void ppfci_encrypted_fusion(
 		mpz_t c_P0[],
 		mpz_t c_P0x0[],
 		mpz_t m_den,
@@ -168,7 +193,7 @@ void encrypted_fci(
 	}
 }
 
-void decrypt(
+void ppfci_decrypt(
 		mpz_t P0[],
 		mpz_t P0x0[],
 		mpz_t label,

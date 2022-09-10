@@ -11,7 +11,20 @@
 #include <gmp.h>
 #include <stdint.h>
 
-void sensor_encrypt(
+void ppfci_setup(
+                gmp_randstate_t rand_state,
+                mpz_t y,
+                mpz_t p,
+                mpz_t N,
+                mpz_t ppaN,
+                mpz_t upk[],
+                mpz_t usk[],
+                mpz_t sk[],
+                const uint32_t msgsize,
+                const uint32_t keysize,
+                const uint32_t n_sensors);
+
+void ppfci_sensor_encrypt(
 		mpz_t c_tr, 
 		mpz_t label,
 		gmp_randstate_t rand_state,
@@ -32,7 +45,7 @@ void sensor_encrypt(
 		const uint32_t dim, 
 		const uint32_t n_sensors);
 
-void encrypted_fci(
+void ppfci_encrypted_fusion(
 		mpz_t c_P0[], 
 		mpz_t c_P0x0[], 
 		mpz_t m_den,
@@ -51,7 +64,7 @@ void encrypted_fci(
 		const uint32_t dim, 
 		const uint32_t n_sensors);
 
-void decrypt(
+void ppfci_decrypt(
 		mpz_t P0[],
 		mpz_t P0x0[],
 	        mpz_t label,
