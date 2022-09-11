@@ -4,6 +4,7 @@
 ///////////////////////////////////////////
 #include "ppfci.h"
 #include "joye_libert_journal/joye_libert.h"
+#include <iostream>
 
 void ppfci_setup(
 		gmp_randstate_t rand_state,
@@ -63,6 +64,7 @@ void ppfci_sensor_encrypt(
 		mpz_add(trace, trace, Pm[i*dim + i]);
 	}
 
+	std::cout << "Before ppa_encrypt\n";
 	// Do PPA encryption of the trace of P
 	ppa_encrypt(c_tr, ski, trace, timestep, ppaN, ppaN2);
 
@@ -73,6 +75,7 @@ void ppfci_sensor_encrypt(
 	mu_he_encrypt(C_tr, rand_state, b, usk, trace, y, N, label, msgsize);
 	mpz_add_ui(label, label, 1);
 
+	std::cout << "Element-wise encryption\n";
 	// Do element-wise MU-LabHE encryption of P^{-1}
 	uint32_t dim2 = dim*dim;
 	for (uint32_t i = 0; i < dim2; i++)
@@ -157,22 +160,25 @@ void ppfci_encrypted_fusion(
 
 		// Perform element-wise ciphertext multiplication 
 		// between weight i and matrix P[i]
+		std::cout << "CT mult between weight and matrix for sensor " << i << std::endl;
 		for (uint32_t j = 0; j < dim2; j++)
 		{
 			mpz_init(c_P0_array[i*dim2 + j]);
 			mu_he_eval_mult(c_P0_array[i*dim2 + j], rand_state, &weight, &C_P[i*dim2 + j], y, N, msgsize);
 		}
 
+		std::cout << "CT mult between weight and matrix for sensor " << i << std::endl;
 		// Perform element-wise ciphertext multiplication
 		// between weight i and vector P[i]x[i]
 		for (uint32_t j = 0; j < dim; j++)
 		{
-			mpz_init(c_P0x0_array[i*dim2 + j]);
-			mu_he_eval_mult(c_P0x0_array[i*dim2 + j], rand_state, &weight, &C_Px[i*dim2 + j], y, N, msgsize);
+			mpz_init(c_P0x0_array[i*dim + j]);
+			mu_he_eval_mult(c_P0x0_array[i*dim + j], rand_state, &weight, &C_Px[i*dim + j], y, N, msgsize);
 		}
 	}
 
 	// Sum the weighted contributions of P0
+	std::cout << "Summing weighted contributions of P0\n";
 	for (uint32_t i = 0; i < dim2; i++)
 	{
 		mu_he_eval_add(c_P0[i], c_P0_array[i], c_P0_array[dim2 + i], N);
@@ -182,6 +188,7 @@ void ppfci_encrypted_fusion(
 		}
 	}
 
+	std::cout << "Summing weighted contributions of P0x0\n";
 	// Sum the weighted contributions of P0x0
 	for (uint32_t i = 0; i < dim; i++)
 	{
@@ -191,6 +198,7 @@ void ppfci_encrypted_fusion(
 			mu_he_eval_add(c_P0x0[i], c_P0x0[i], c_P0x0_array[j*dim], N);
 		}
 	}
+	std::cout << "Finished iteration\n";
 }
 
 void ppfci_decrypt(
@@ -210,6 +218,8 @@ void ppfci_decrypt(
 	// We have to evaluate the labeled program P(f, tau_i)
 	// First we need to recover the secret keys.
 	mpz_t usk[n_sensors];
+
+	std::cout << "Recovering usk" << std::endl;
 	for (uint32_t i = 0; i < n_sensors; i++)
 	{
 		mpz_init(usk[i]);
@@ -227,6 +237,8 @@ void ppfci_decrypt(
 	uint8_t digest[32];
 
 	// Compute b's for each sensor
+	
+	std::cout << "Computing the b's\n";
 	for (uint32_t i = 0; i < n_sensors; i++)
 	{
 		mpz_set(label, label_counter);
@@ -242,6 +254,7 @@ void ppfci_decrypt(
 		mpz_add_ui(label, label, 1);
 
 		// For the P matrix encryptions
+		std::cout << "Recovering P matrix b's for sensor " << i << std::endl;
 		for (uint32_t j = 0; j < dim2; j++)
 		{
 			//
@@ -261,6 +274,7 @@ void ppfci_decrypt(
 		}
 
 		// For the Px vector
+		std::cout << "Recovering Px vector b's for sensor " << i << std::endl;
 		for (uint32_t j = 0; j < dim; j++)
 		{
 			//
@@ -286,6 +300,8 @@ void ppfci_decrypt(
 	mpz_init(ptspace);
 
 	mpz_ui_pow_ui(ptspace, 2, msgsize);
+
+	std::cout << "Computing sum of traces b's\n";
 	for (uint32_t i = 1; i < n_sensors; i++)
 	{
 		mpz_add(b_sum, b_sum, b[i*(1 + dim + dim2)]);
@@ -326,6 +342,21 @@ void ppfci_decrypt(
 
 	mpz_t b_P[n_sensors*dim2];
 	mpz_t b_Px[n_sensors*dim];
+
+	// Initialize b_P and b_Px
+	for (uint32_t i = 0; i < n_sensors; i++)
+	{
+		for (uint32_t j = 0; j < dim2; j++)
+		{
+			mpz_init(b_P[j + i*dim2]);
+		}
+		for (uint32_t j = 0; j < dim; j++)
+		{
+			mpz_init(b_Px[j + i*dim]);
+		}
+	}
+
+	std::cout << "Computing b's corresponding to weights\n";
 	for (uint32_t i = 1; i < n_sensors; i++)
 	{
 		mpz_sub(b_weight, b_sum, b[i*(1 + dim + dim2)]);
@@ -357,16 +388,64 @@ void ppfci_decrypt(
 	}
 
 	// Decrypt the P0 matrix
+	std::cout << "Decrypting P0 matrix\n";
 	for (uint32_t i = 1; i < dim2; i++)
 	{
 		mu_he_decrypt(P0[i], c_P0[i], b_wP0[i], msk, y, msgsize);
 	}
 
 	// Decrypt the P0x0 vector
+	std::cout << "Decrypting P0x0 vector\n";
 	for (uint32_t i = 0; i < dim; i++)
 	{
 		mu_he_decrypt(P0x0[i], c_P0x0[i], b_wP0x0[i], msk, y, msgsize);
 	}
 }
 
+void rho(mpz_t out, const mpf_t in, const mpz_t gamma, const mpz_t ptspace)
+{
+        mpf_t tmp;
+        mpf_init(tmp);
+        mpf_set_z(tmp, gamma);
+        mpf_mul(tmp, in, tmp);
 
+//        mpz_t size;
+//        mpz_init(size);
+//        mpz_ui_pow_ui(size, 2, msgsize);
+
+        mpz_set_f(out, tmp);
+        mpz_mod(out, out, ptspace);
+}
+
+void rho_inv(mpf_t out, const mpz_t in, const mpz_t gamma, const mpz_t ptspace)
+{
+        
+//        mpz_t size, halfsize;
+//        mpz_init(size);
+        mpz_t halfsize;
+	mpz_init(halfsize);
+//        mpz_ui_pow_ui(size, 2, msgsize);
+//        mpz_ui_pow_ui(halfsize, 2, msgsize-1);
+  
+  	mpz_div_ui(halfsize, ptspace, 2);	
+        mpz_t test; 
+        mpz_init(test);
+        
+        mpz_sub(test, in, halfsize);
+
+	mpf_t gamma_f;
+        mpf_init(gamma_f);
+
+        mpf_set_z(gamma_f, gamma);
+
+        
+	if (mpz_sgn(test) != -1)
+        {
+                // negative number
+                mpz_sub(test, in, ptspace);
+        } else {
+		mpz_set(test, in);
+	}
+        mpf_set_z(out, test);
+        mpf_div(out, out, gamma_f);
+}

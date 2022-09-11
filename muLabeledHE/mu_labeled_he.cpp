@@ -260,16 +260,18 @@ void mu_he_eval_sub(
 	mpz_neg(a_inv, c2->a);
 	mpz_mod(a_inv, a_inv, ptspace);
 	gmp_printf("additive inverse a: %Zd\n", a_inv);
-	std::cout << "Computing inverse b\n";
+	gmp_printf("Computing inverse b: %Zd\n", c2->beta);
 	mpz_invert(beta_inv, c2->beta, N);
 
-	std::cout << "Adding a\n";
+	gmp_printf("Adding a: %Zd\n", c1->a);
 	mpz_add(c->a, c1->a, a_inv);
 	mpz_mod(c->a, c->a, ptspace);
 
-	std::cout << "Multiplying beta\n";
+	gmp_printf("Multiplying beta: %Zd\n", c1->beta);
+	gmp_printf("Beta_inv: %Zd\n", beta_inv);
 	mpz_mul(c->beta, c1->beta, beta_inv);
 	mpz_mod(c->beta, c->beta, N);
+	gmp_printf("Finished sub\n");
 }
 
 void mu_he_eval_sub(

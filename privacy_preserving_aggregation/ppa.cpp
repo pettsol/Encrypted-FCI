@@ -62,10 +62,14 @@ void ppa_encrypt(mpz_t c, const mpz_t ski, const mpz_t x, const mpz_t t, const m
 	mpz_init(digest);
 	ppa_H(digest, t, N);
 
+	std::cout << "Taking the power in ppa-encrypt\n";
+	gmp_printf("Digest: %Zd\n", digest);
+	gmp_printf("ski: %Zd\n", ski);
+	gmp_printf("N2: %Zd\n", N2);
 	// Take modular power of the hash digest with the user key ski
 	mpz_powm(c, digest, ski, N2);
 	// NB! TRY TO DO THIS BY MULTIPLYING? Take advantage of the binomial theorem
-	
+	std::cout << "Done taking the power in ppa-encrypt\n";
 	// Multiply with (1 + xN)
 	mpz_t tmp;
 	mpz_init(tmp);

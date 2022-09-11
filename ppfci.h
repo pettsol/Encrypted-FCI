@@ -69,13 +69,26 @@ void ppfci_decrypt(
 		mpz_t P0x0[],
 	        mpz_t label,
 		const mpz_t c_P0[],
-		const mpz_t c_x0[],
+		const mpz_t c_P0x0[],
+		const mpz_t m_den,
 		const mpz_t upk[],
 		const mpz_t msk,
 		const mpz_t y,
 		const uint32_t msgsize,
 		const uint32_t dim,
 		const uint32_t n_sensors);
+
+void rho(
+		mpz_t out,
+		const mpf_t in,
+		const mpz_t gamma,
+		const mpz_t ptspace);
+
+void rho_inv(
+		mpf_t out,
+		const mpz_t in,
+		const mpz_t gamma,
+		const mpz_t ptspace);
 
 void normalize(void);
 

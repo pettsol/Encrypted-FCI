@@ -18,6 +18,9 @@ int main()
 	gmp_randinit_mt(rand_state);
 
 	mpz_t y, p, N, ppaN, upk[n_sensors], usk[n_sensors], sk[n_sensors+1];
+	mpz_t ppaN2;
+	mpz_init(ppaN2);
+	
 	mpz_init(sk[0]);
 	mpz_init(y);
 	mpz_init(p);
@@ -30,7 +33,11 @@ int main()
 		mpz_init(sk[i+1]);
 	}
 
+	// *** RUN THE SETUP TO GENERATE THE APPROPRIATE KEYS *** //
 	ppfci_setup(rand_state, y, p, N, ppaN, upk, usk, sk, msgsize, keysize, n_sensors);
+
+	// Multiply before - it is convenient and saves a lot of time!
+	mpz_mul(ppaN2, ppaN, ppaN);
 
 	// We need to extract information from the files and store in 3 arrays	
 	std::ifstream Pm_file, P_file, Px_file;
@@ -53,11 +60,109 @@ int main()
 	for (uint32_t i = 0; i < count; i++)
 	{
 		Px_file >> Px_double_array[i];
-		std::cout << Px_double_array[i] << std::endl;
+		//std::cout << Px_double_array[i] << std::endl;
 	}
 
 	// Map the arrays to unsigned integers
+	mpz_t gamma, ptspace;
+	mpz_init(gamma);
+	mpz_init(ptspace);
+
+	mpz_ui_pow_ui(ptspace, 2, msgsize);
+	mpz_ui_pow_ui(gamma, 2, 10);
+
+	mpz_t Pm[count*dim], P[count*dim], Px[count];
+
+	mpf_t input;
+	mpf_init(input);
+
+	std::cout << "Mapping to integers\n";
+	for (uint32_t i = 0; i < count*dim; i++)
+	{
+		mpz_init(Pm[i]);
+		mpz_init(P[i]);
+
+		mpf_set_d(input, Pm_double_array[i]);
+		rho(Pm[i], input, gamma, ptspace);
+
+		mpf_set_d(input, P_double_array[i]);
+		rho(P[i], input, gamma, ptspace);
+	}
+
+	for (uint32_t i = 0; i < count; i++)
+	{
+		mpz_init(Px[i]);
+		mpf_set_d(input, Px_double_array[i]);
+		rho(Px[i], input, gamma, ptspace);
+	}
+
 
 	// For each timestep we need to encrypt the sensor output from each sensor,
-	// fuse it, decrypt the result, and store in a new text file	
+	// fuse it, decrypt the result, and store in a new text file
+	mpz_t timestep, label, label_start;
+	mpz_init(timestep);
+	mpz_init(label_start);
+	mpz_init_set_ui(label, 1);
+
+	// Variables holding the encrypted sensor data
+	mpz_t c_trace[n_sensors];
+	he_ct C_P[dim*dim*n_sensors];
+	he_ct C_Px[dim*n_sensors];
+	he_ct C_trace[n_sensors];
+
+	// Variables holding the fused encrypted data and the sum of traces
+	mpz_t c_P0[dim*dim];
+	mpz_t c_P0x0[dim];
+	mpz_t m_den;
+
+	// Variables holding the decrypted fused data
+	mpz_t P0[dim*dim];
+	mpz_t P0x0[dim];
+
+	// Initialize the arrays
+	for (uint32_t i = 0; i < dim*dim; i++)
+	{
+		mpz_init(c_P0[i]);
+		mpz_init(P0[i]);
+	}
+
+	for (uint32_t i = 0; i < dim; i++)
+	{
+		mpz_init(c_P0x0[i]);
+		mpz_init(c_P0x0[i]);
+	}
+	
+	// Initialize the sum of traces
+	mpz_init(m_den);
+
+	for (uint32_t t = 0; t < timesteps; t++)
+	{
+		// For each timestep, run 1 iteration
+		std::cout << "Fusing timestep: " << t << std::endl;
+		mpz_set(label_start, label);
+		mpz_set_ui(timestep, t);
+
+		// First encrypt the data from each sensor using the
+		// sensor-specific secret key
+		for (uint32_t i = 0; i < n_sensors; i++)
+		{
+			std::cout << "Encrypting sensor " << i << std::endl;
+			mpz_init(c_trace[i]);
+			ppfci_sensor_encrypt(c_trace[i], label, rand_state, &C_trace[i + i*(dim*dim)], 
+					&C_P[i + i*(dim*dim)], &C_Px[i + i*dim], &Pm[i + i*(dim*dim)], 
+					&P[i + i*(dim*dim)], &Px[i + i*dim], usk[i], y, N, sk[i], timestep,
+					ppaN, ppaN2, msgsize, dim, n_sensors);
+		}
+
+		// Proceed by fusing the encrypted data
+		std::cout << "Fusing timestep " << t << std::endl;
+		ppfci_encrypted_fusion(c_P0, c_P0x0, m_den, rand_state, sk[0], timestep, y, N, ppaN,
+					ppaN2, c_trace, C_trace, C_P, C_Px, msgsize, dim, n_sensors);
+
+		// Decrypt the fused data
+		std::cout << "Decrypting timestep " << t << std::endl;
+		ppfci_decrypt(P0, P0x0, label_start, c_P0, c_P0x0, m_den, upk, p, y, msgsize, dim, n_sensors);
+
+		// Write the fused data to file
+	}
 }
