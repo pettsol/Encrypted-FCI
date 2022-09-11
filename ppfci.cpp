@@ -402,6 +402,72 @@ void ppfci_decrypt(
 	}
 }
 
+void ppfci_normalize(
+                double P0_matrix[],
+                double P0x0_vector[],
+                const mpz_t P0[],
+                const mpz_t P0x0[],
+                const mpz_t m_den,
+                const mpz_t ptspace,
+                const mpz_t gamma,
+		const uint32_t dim)
+{
+	// We perform 2 multiplications per element,
+	// so the cumulative scaling is given by
+	// c_gamma = gamma*gamma*gamma
+	mpz_t c_gamma;
+	mpz_init(c_gamma);
+	mpz_mul(c_gamma, gamma, gamma);
+	mpz_mul(c_gamma, c_gamma, gamma);
+
+	mpf_t tmp_float;
+	mpf_init(tmp_float);
+	// Inverse map matrix
+	for (int i = 0; i < dim*dim; i++)
+	{
+		rho_inv(tmp_float, P0[i], c_gamma, ptspace);
+		P0_matrix[i] = mpf_get_d(tmp_float);
+	}
+
+	// Inverse map vector
+	for (int i = 0; i < dim; i++)
+	{
+		rho_inv(tmp_float, P0[i], c_gamma, ptspace);
+		P0x0_vector[i] = mpf_get_d(tmp_float);
+	}
+	
+	// We need to check if we should normalize
+	if (mpz_gcd_ui(NULL, m_den, 2) != 1)
+	{
+		mpz_t tmp;
+		mpz_init(tmp);
+		mpz_add_ui(tmp, m_den, 1);
+		
+		// We need to map m_den and tmp to doubles,
+		// compute the ratio tmp/m_den, and multiply each
+		// element in P0_matrix and P0x0_vector with the
+		// ratio to normalize.
+		double m_den_double, tmp_double;
+		rho_inv(tmp_float, m_den, gamma, ptspace);
+		m_den_double = mpf_get_d(tmp_float);
+		rho_inv(tmp_float, tmp, gamma, ptspace);
+		tmp_double = mpf_get_d(tmp_float);
+		double ratio = tmp_double/m_den_double;
+
+		// Normalize P0
+		for (int i = 0; i < dim*dim; i++)
+		{
+			P0_matrix[i] = P0_matrix[i] * ratio;
+		}
+
+		// Normalize P0x0
+		for (int i = 0; i < dim; i++)
+		{
+			P0x0_vector[i] = P0x0_vector[i] * ratio;
+		}
+	}
+}
+
 void rho(mpz_t out, const mpf_t in, const mpz_t gamma, const mpz_t ptspace)
 {
         mpf_t tmp;

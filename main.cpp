@@ -119,6 +119,10 @@ int main()
 	mpz_t P0[dim*dim];
 	mpz_t P0x0[dim];
 
+	// Variables to hold the final fused data
+	double P0_matrix[dim*dim] = {0};
+	double P0x0_vector[dim] = {0};
+
 	// Initialize the arrays
 	for (uint32_t i = 0; i < dim*dim; i++)
 	{
@@ -134,6 +138,10 @@ int main()
 	
 	// Initialize the sum of traces
 	mpz_init(m_den);
+
+	// We need to write the fused P0 and P0x0 to files
+	std::ofstream P0_file("fused_inv_covariance_0.csv");
+	std::ofstream P0x0_file("fused_inv_covariance_x_mean_0.csv");
 
 	for (uint32_t t = 0; t < timesteps; t++)
 	{
@@ -163,6 +171,30 @@ int main()
 		std::cout << "Decrypting timestep " << t << std::endl;
 		ppfci_decrypt(P0, P0x0, label_start, c_P0, c_P0x0, m_den, upk, p, y, msgsize, dim, n_sensors);
 
+		// Map back to floating point numbers and normalize
+		ppfci_normalize(P0_matrix, P0x0_vector, P0, P0x0, m_den, ptspace, gamma, dim);
+
 		// Write the fused data to file
+		// We write the matrix first
+		for (uint32_t i = 0; i < dim*dim; i++)
+		{
+			std::cout << "Writing to file\n";
+			P0_file << P0_matrix[i];
+			P0_file << " ";
+		}
+		// Timesteps separated by newline
+		P0_file << std::endl;
+
+		// Then we write the vector
+		for (uint32_t i = 0; i < dim; i++)
+		{
+			P0x0_file << P0x0_vector[i];
+			P0x0_file << " ";
+		}
+		P0x0_file << std::endl;
 	}
+
+	// Close the files
+	P0_file.close();
+	P0x0_file.close();
 }
