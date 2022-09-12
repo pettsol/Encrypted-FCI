@@ -65,11 +65,11 @@ void mu_he_encrypt(
 	mpz_add(input, usk, label);
 
         // DEBUG - CHECK SIZE OF USK[i]
-        size_t test_size = (mpz_sizeinbase(usk, 2) + CHAR_BIT-1)/CHAR_BIT;
-        std::cout << "Size of usk: " << test_size << std::endl;
+        //size_t test_size = (mpz_sizeinbase(usk, 2) + CHAR_BIT-1)/CHAR_BIT;
+        //std::cout << "Size of usk: " << test_size << std::endl;
 
 
-	// Declare digest array
+	// Declare digest array - SHA-256 produces a 32-byte digest
 	uint8_t digest[32];
 
 	// Load label into the array
@@ -82,22 +82,24 @@ void mu_he_encrypt(
 	sha256_process_message(digest, input_array, size_array);
 	//hc128_process_packet(hc_cs, keystream, keystream, msgsize/8);
 	
+	mpz_t ptspace;
+	//mpz_init(a);
+	mpz_init(ptspace);
+
+	mpz_ui_pow_ui(ptspace, 2, msgsize);
+
+
 	// Import it back as an mpz_t
 	mpz_import(b, 32, 1, 1, 0, 0, digest);
-
-	std::cout << "Size_array: " << size_array << std::endl;
-	gmp_printf("b: %Zd\n", b);
+	mpz_mod(b, b, ptspace);
+	//std::cout << "Size_array: " << size_array << std::endl;
+	//gmp_printf("b: %Zd\n", b);
 
 	joye_libert_encrypt(c->beta, state, b, y, N, msgsize);
 
 	// Online-Enc(Coff):
 	//	Parse Coff as (b, beta) and output C = (a, beta)
 	//	where a <- m - b (in Message space).
-	mpz_t a, ptspace;
-	mpz_init(a);
-	mpz_init(ptspace);
-
-	mpz_ui_pow_ui(ptspace, 2, msgsize);
 	mpz_sub(c->a, m, b);
 	mpz_mod(c->a, c->a, ptspace);
 }

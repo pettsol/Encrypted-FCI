@@ -62,14 +62,14 @@ void ppa_encrypt(mpz_t c, const mpz_t ski, const mpz_t x, const mpz_t t, const m
 	mpz_init(digest);
 	ppa_H(digest, t, N);
 
-	std::cout << "Taking the power in ppa-encrypt\n";
-	gmp_printf("Digest: %Zd\n", digest);
-	gmp_printf("ski: %Zd\n", ski);
-	gmp_printf("N2: %Zd\n", N2);
+//	std::cout << "Taking the power in ppa-encrypt\n";
+//	gmp_printf("Digest: %Zd\n", digest);
+//	gmp_printf("ski: %Zd\n", ski);
+//	gmp_printf("N2: %Zd\n", N2);
 	// Take modular power of the hash digest with the user key ski
 	mpz_powm(c, digest, ski, N2);
 	// NB! TRY TO DO THIS BY MULTIPLYING? Take advantage of the binomial theorem
-	std::cout << "Done taking the power in ppa-encrypt\n";
+//	std::cout << "Done taking the power in ppa-encrypt\n";
 	// Multiply with (1 + xN)
 	mpz_t tmp;
 	mpz_init(tmp);
@@ -86,7 +86,7 @@ void ppa_aggregate_decrypt(mpz_t sum, const mpz_t sk0, const mpz_t t, const mpz_
 	mpz_init(digest);
 	ppa_H(digest, t, N);
 
-	gmp_printf("Decrypt digest: %Zd\n", digest);
+//	gmp_printf("Decrypt digest: %Zd\n", digest);
 	// Take modular power of the hash digest with the aggregation key sk0
 	mpz_powm(sum, digest, sk0, N2);
 
@@ -103,14 +103,14 @@ void ppa_aggregate_decrypt(mpz_t sum, const mpz_t sk0, const mpz_t t, const mpz_
 		mpz_mod(tmp, tmp, N2);
 	}
 
-	gmp_printf("Product of ciphertexts: %Zd\n", tmp);
+//	gmp_printf("Product of ciphertexts: %Zd\n", tmp);
 	// Multiply ciphertext product with the hash digest power
 	mpz_mul(sum, sum, tmp);
 	mpz_mod(sum, sum, N2);
 
 	// Recover the plaintext sum by fast discrete logarithm
 	mpz_sub_ui(sum, sum, 1);
-	gmp_printf("Sum: %Zd\n", sum);
+//	gmp_printf("Sum: %Zd\n", sum);
 	mpz_cdiv_q(sum, sum, N);
 }
 
@@ -135,7 +135,7 @@ void ppa_H(mpz_t digest, const mpz_t input, const mpz_t N)
 	// in the range {0, ..., 2^{256} - 1}
 	mpz_t sha_digest_integer;
 	mpz_init(sha_digest_integer);
-	mpz_import(sha_digest_integer, 256/32, 1, 4, 0, 0, sha_digest_array);
+	mpz_import(sha_digest_integer, 32, 1, 1, 0, 0, sha_digest_array);
 
 #ifdef DEBUG
 //	gmp_printf("SHA-256 digest integer: %Zd\n", sha_digest_integer);

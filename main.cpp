@@ -9,13 +9,13 @@ int main()
 	// We need to generate muLabHE keys, i.e., 1 msk and 1 mpk,
 	// and N usk and upk.
 	// We need to generate N ppa encryption keys
-	uint32_t msgsize = 64;
+	uint32_t msgsize = 128;
 	//uint32_t keysize = 2048;
 	uint32_t keysize = 1024;
 	uint32_t dim = 4;
 	uint32_t n_sensors = 2;
 	//uint32_t timesteps = 2;
-	uint32_t timesteps = 1;
+	uint32_t timesteps = 10;
 
 	gmp_randstate_t rand_state;
 	gmp_randinit_mt(rand_state);
@@ -58,6 +58,15 @@ int main()
 		P_file >> P_double_array[i];
 	}
 
+	// DEBUG TRACE
+	double test_trace = Pm_double_array[0];
+	test_trace += Pm_double_array[5];
+	test_trace += Pm_double_array[10];
+	test_trace += Pm_double_array[15];
+
+	std::cout << "test_trace = " << test_trace << std::endl;
+
+
 	count = count / dim;
 	double Px_double_array[count];
 	for (uint32_t i = 0; i < count; i++)
@@ -72,7 +81,7 @@ int main()
 	mpz_init(ptspace);
 
 	mpz_ui_pow_ui(ptspace, 2, msgsize);
-	mpz_ui_pow_ui(gamma, 2, 10);
+	mpz_ui_pow_ui(gamma, 2, 15);
 
 	mpz_t Pm[count*dim], P[count*dim], Px[count];
 
@@ -149,7 +158,7 @@ int main()
 	for (uint32_t t = 0; t < timesteps; t++)
 	{
 		// For each timestep, run 1 iteration
-		std::cout << "Fusing timestep: " << t << std::endl;
+		//std::cout << "Fusing timestep: " << t << std::endl;
 		mpz_set(label_start, label);
 		mpz_set_ui(timestep, t);
 
@@ -157,7 +166,7 @@ int main()
 		// sensor-specific secret key
 		for (uint32_t i = 0; i < n_sensors; i++)
 		{
-			std::cout << "Encrypting sensor " << i << std::endl;
+			//std::cout << "Encrypting sensor " << i << std::endl;
 			mpz_init(c_trace[i]);
 			ppfci_sensor_encrypt(c_trace[i], label, rand_state, &C_trace[i], 
 					&C_P[i*(dim*dim)], &C_Px[i*dim], &Pm[i*(dim*dim) + t*(dim*dim*n_sensors)], 
@@ -189,7 +198,7 @@ int main()
 		gmp_printf("Expected sum: %Zd\n", true_sum); */
 		
 		// Proceed by fusing the encrypted data
-		std::cout << "Fusing timestep " << t << std::endl;
+		//std::cout << "Fusing timestep " << t << std::endl;
 		ppfci_encrypted_fusion(c_P0, c_P0x0, m_den, rand_state, sk[0], timestep, y, N, ppaN,
 					ppaN2, c_trace, C_trace, C_P, C_Px, msgsize, dim, n_sensors);
 
@@ -198,7 +207,7 @@ int main()
 		gmp_printf("Sum of traces: %Zd\n", m_den);*/
 
 		// Decrypt the fused data
-		std::cout << "Decrypting timestep " << t << std::endl;
+		//std::cout << "Decrypting timestep " << t << std::endl;
 		ppfci_decrypt(P0, P0x0, label_start, c_P0, c_P0x0, m_den, upk, p, y, msgsize, dim, n_sensors);
 
 		// Map back to floating point numbers and normalize
@@ -208,7 +217,7 @@ int main()
 		// We write the matrix first
 		for (uint32_t i = 0; i < dim*dim; i++)
 		{
-			std::cout << "Writing to file\n";
+			//std::cout << "Writing to file\n";
 			P0_file << P0_matrix[i];
 			P0_file << " ";
 		}
