@@ -9,9 +9,10 @@
 
 int main()
 {
-	uint32_t n_sensors = 3;
-	uint32_t keysize = 4096;
-
+	uint32_t n_sensors = 2;
+	//uint32_t keysize = 4096;
+	uint32_t keysize = 1024;
+	//
 	std::cout << "Hello World\n";
 
 #ifdef DEBUG
@@ -32,6 +33,10 @@ int main()
 
 	ppa_setup(N, sk, keysize, n_sensors);
 
+#ifdef DEBUG
+	gmp_printf("sk[0] = %Zd\n", sk[0]);
+#endif
+
 	mpz_t N2;
 	mpz_init(N2);
 	mpz_mul(N2, N, N);
@@ -47,7 +52,7 @@ int main()
 
 	for (int i = 0; i < n_sensors; i++)
 	{
-		mpz_init_set_ui(x[i], i+100);
+		mpz_init_set_ui(x[i], i+100000);
 		mpz_init(c[i]);
 	}
 

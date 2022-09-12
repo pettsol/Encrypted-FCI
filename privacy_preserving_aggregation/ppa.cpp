@@ -85,7 +85,8 @@ void ppa_aggregate_decrypt(mpz_t sum, const mpz_t sk0, const mpz_t t, const mpz_
 	mpz_t digest;
 	mpz_init(digest);
 	ppa_H(digest, t, N);
-	
+
+	gmp_printf("Decrypt digest: %Zd\n", digest);
 	// Take modular power of the hash digest with the aggregation key sk0
 	mpz_powm(sum, digest, sk0, N2);
 
@@ -102,14 +103,15 @@ void ppa_aggregate_decrypt(mpz_t sum, const mpz_t sk0, const mpz_t t, const mpz_
 		mpz_mod(tmp, tmp, N2);
 	}
 
+	gmp_printf("Product of ciphertexts: %Zd\n", tmp);
 	// Multiply ciphertext product with the hash digest power
 	mpz_mul(sum, sum, tmp);
 	mpz_mod(sum, sum, N2);
 
 	// Recover the plaintext sum by fast discrete logarithm
 	mpz_sub_ui(sum, sum, 1);
+	gmp_printf("Sum: %Zd\n", sum);
 	mpz_cdiv_q(sum, sum, N);
-
 }
 
 void ppa_H(mpz_t digest, const mpz_t input, const mpz_t N)
@@ -142,7 +144,7 @@ void ppa_H(mpz_t digest, const mpz_t input, const mpz_t N)
 	// Map the sha_digest to an element of the multiplicative group
 	mpz_t tmp;
 	mpz_init(tmp);
-	mpz_mul(tmp, tmp, N);
+	mpz_mul(tmp, sha_digest_integer, N);
 	
 	mpz_set_ui(digest, 1);
 	mpz_add(digest, digest, tmp);

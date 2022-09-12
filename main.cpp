@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <unistd.h>
 
 int main()
 {
@@ -9,10 +10,12 @@ int main()
 	// and N usk and upk.
 	// We need to generate N ppa encryption keys
 	uint32_t msgsize = 64;
-	uint32_t keysize = 2048;
+	//uint32_t keysize = 2048;
+	uint32_t keysize = 1024;
 	uint32_t dim = 4;
 	uint32_t n_sensors = 2;
-	uint32_t timesteps = 150;
+	//uint32_t timesteps = 2;
+	uint32_t timesteps = 1;
 
 	gmp_randstate_t rand_state;
 	gmp_randinit_mt(rand_state);
@@ -21,7 +24,7 @@ int main()
 	mpz_t ppaN2;
 	mpz_init(ppaN2);
 	
-	mpz_init(sk[0]);
+	mpz_init_set_ui(sk[0], 0);
 	mpz_init(y);
 	mpz_init(p);
 	mpz_init(N);
@@ -133,7 +136,7 @@ int main()
 	for (uint32_t i = 0; i < dim; i++)
 	{
 		mpz_init(c_P0x0[i]);
-		mpz_init(c_P0x0[i]);
+		mpz_init(P0x0[i]);
 	}
 	
 	// Initialize the sum of traces
@@ -156,16 +159,43 @@ int main()
 		{
 			std::cout << "Encrypting sensor " << i << std::endl;
 			mpz_init(c_trace[i]);
-			ppfci_sensor_encrypt(c_trace[i], label, rand_state, &C_trace[i + i*(dim*dim)], 
-					&C_P[i + i*(dim*dim)], &C_Px[i + i*dim], &Pm[i + i*(dim*dim)], 
-					&P[i + i*(dim*dim)], &Px[i + i*dim], usk[i], y, N, sk[i], timestep,
-					ppaN, ppaN2, msgsize, dim, n_sensors);
+			ppfci_sensor_encrypt(c_trace[i], label, rand_state, &C_trace[i], 
+					&C_P[i*(dim*dim)], &C_Px[i*dim], &Pm[i*(dim*dim) + t*(dim*dim*n_sensors)], 
+					&P[i*(dim*dim) + t*(dim*dim*n_sensors)], &Px[i*dim + t*(dim*n_sensors)], 
+					usk[i], y, N, sk[i+1], timestep, ppaN, ppaN2, msgsize, dim, n_sensors);
 		}
 
+		/*
+		// DEBUG! Check that the sk0 is correct
+		mpz_t test;
+		mpz_init(test);
+		mpz_add(test, sk[0], sk[1]);
+		mpz_add(test, test, sk[2]);
+		gmp_printf("Test: %Zd\n", test);
+
+		// DEBUG! Check the expected sum of traces
+		mpz_t true_sum, tmp_sum;
+		mpz_init_set_ui(true_sum, 0);
+		mpz_init(tmp_sum);
+		for (uint32_t i = 0; i < n_sensors; i++)
+		{
+			mpz_set_ui(tmp_sum, 0);
+			for (uint32_t j = 0; j < dim; j++)
+			{
+				mpz_add(tmp_sum, tmp_sum, Pm[j + j*dim + i*dim*dim]);
+			}
+			mpz_add(true_sum, true_sum, tmp_sum);
+		}
+		gmp_printf("Expected sum: %Zd\n", true_sum); */
+		
 		// Proceed by fusing the encrypted data
 		std::cout << "Fusing timestep " << t << std::endl;
 		ppfci_encrypted_fusion(c_P0, c_P0x0, m_den, rand_state, sk[0], timestep, y, N, ppaN,
 					ppaN2, c_trace, C_trace, C_P, C_Px, msgsize, dim, n_sensors);
+
+		/*// Check the sum of traces variable
+		gmp_printf("sk[0] = %Zd\n", sk[0]);
+		gmp_printf("Sum of traces: %Zd\n", m_den);*/
 
 		// Decrypt the fused data
 		std::cout << "Decrypting timestep " << t << std::endl;

@@ -31,7 +31,7 @@ void mu_he_keygen(
 		const uint32_t msgsize)
 {
 	// Sample random seed usk = K
-	mpz_urandomb(usk, state, 128);
+	mpz_urandomb(usk, state, msgsize);
 
 	// compute upk <- joye_libert_encrypt(mpk, K)
 	joye_libert_encrypt(upk, state, usk, y, N, msgsize);
@@ -64,21 +64,28 @@ void mu_he_encrypt(
 	mpz_init(input);
 	mpz_add(input, usk, label);
 
+        // DEBUG - CHECK SIZE OF USK[i]
+        size_t test_size = (mpz_sizeinbase(usk, 2) + CHAR_BIT-1)/CHAR_BIT;
+        std::cout << "Size of usk: " << test_size << std::endl;
+
+
 	// Declare digest array
 	uint8_t digest[32];
 
 	// Load label into the array
-        size_t size = (mpz_sizeinbase(input, 2) + CHAR_BIT-1)/CHAR_BIT;
-        uint8_t input_array[size] = {0};
+        size_t size_array = (mpz_sizeinbase(input, 2) + CHAR_BIT-1)/CHAR_BIT;
+        uint8_t input_array[size_array] = {0};
+	size_t size;
 	mpz_export(input_array, &size, 1, 1, 0, 0, input);
 	
 	// Compute the digest
-	sha256_process_message(digest, input_array, size);
+	sha256_process_message(digest, input_array, size_array);
 	//hc128_process_packet(hc_cs, keystream, keystream, msgsize/8);
 	
 	// Import it back as an mpz_t
-	mpz_import(b, msgsize/32, 1, 4, 0, 0, digest);
+	mpz_import(b, 32, 1, 1, 0, 0, digest);
 
+	std::cout << "Size_array: " << size_array << std::endl;
 	gmp_printf("b: %Zd\n", b);
 
 	joye_libert_encrypt(c->beta, state, b, y, N, msgsize);
@@ -246,7 +253,7 @@ void mu_he_eval_sub(
 	// Case 1 - C1, C2 on the form (a, beta)
 	// C = C1 - C2
 	//
-	std::cout << "Inside sub\n";
+	//std::cout << "Inside sub\n";
 	mpz_t ptspace, a_inv, beta_inv;
 	mpz_init(ptspace);
 	mpz_init(a_inv);
@@ -255,23 +262,23 @@ void mu_he_eval_sub(
 	mpz_ui_pow_ui(ptspace, 2, msgsize);
 
 	// Invert C2.
-	std::cout << "Computing inverse a\n";
+	//std::cout << "Computing inverse a\n";
 	//mpz_invert(a_inv, c2->a, ptspace);
 	mpz_neg(a_inv, c2->a);
 	mpz_mod(a_inv, a_inv, ptspace);
-	gmp_printf("additive inverse a: %Zd\n", a_inv);
-	gmp_printf("Computing inverse b: %Zd\n", c2->beta);
+	//gmp_printf("additive inverse a: %Zd\n", a_inv);
+	//gmp_printf("Computing inverse b: %Zd\n", c2->beta);
 	mpz_invert(beta_inv, c2->beta, N);
 
-	gmp_printf("Adding a: %Zd\n", c1->a);
+	//gmp_printf("Adding a: %Zd\n", c1->a);
 	mpz_add(c->a, c1->a, a_inv);
 	mpz_mod(c->a, c->a, ptspace);
 
-	gmp_printf("Multiplying beta: %Zd\n", c1->beta);
-	gmp_printf("Beta_inv: %Zd\n", beta_inv);
+	//gmp_printf("Multiplying beta: %Zd\n", c1->beta);
+	//gmp_printf("Beta_inv: %Zd\n", beta_inv);
 	mpz_mul(c->beta, c1->beta, beta_inv);
 	mpz_mod(c->beta, c->beta, N);
-	gmp_printf("Finished sub\n");
+	//gmp_printf("Finished sub\n");
 }
 
 void mu_he_eval_sub(
@@ -367,6 +374,7 @@ void mu_he_decrypt(
 
 	mpz_ui_pow_ui(ptspace, 2, msgsize);
 
+	// TODO: Pass ptspace as a variable - saving time
 	joye_libert_decrypt(m, c, p, y, msgsize);
 	mpz_add(m, m, b);
 	mpz_mod(m, m, ptspace);
