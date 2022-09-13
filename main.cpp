@@ -13,9 +13,9 @@ int main()
 	//uint32_t keysize = 2048;
 	uint32_t keysize = 1024;
 	uint32_t dim = 4;
-	uint32_t n_sensors = 2;
+	uint32_t n_sensors = 6;
 	//uint32_t timesteps = 2;
-	uint32_t timesteps = 10;
+	uint32_t timesteps = 150;
 
 	gmp_randstate_t rand_state;
 	gmp_randinit_mt(rand_state);
@@ -44,9 +44,9 @@ int main()
 
 	// We need to extract information from the files and store in 3 arrays	
 	std::ifstream Pm_file, P_file, Px_file;
-	Pm_file.open("datasets/n_sensors=2/covariance_0.csv");
-	P_file.open("datasets/n_sensors=2/inv_covariance_0.csv");
-	Px_file.open("datasets/n_sensors=2/inv_covariance_x_mean_0.csv");
+	Pm_file.open("datasets/n_sensors=6/covariance_0.csv");
+	P_file.open("datasets/n_sensors=6/inv_covariance_0.csv");
+	Px_file.open("datasets/n_sensors=6/inv_covariance_x_mean_0.csv");
 	uint32_t count;
 	count = dim*dim*n_sensors*timesteps;
 
@@ -81,7 +81,7 @@ int main()
 	mpz_init(ptspace);
 
 	mpz_ui_pow_ui(ptspace, 2, msgsize);
-	mpz_ui_pow_ui(gamma, 2, 15);
+	mpz_ui_pow_ui(gamma, 2, 20);
 
 	mpz_t Pm[count*dim], P[count*dim], Px[count];
 
@@ -152,8 +152,8 @@ int main()
 	mpz_init(m_den);
 
 	// We need to write the fused P0 and P0x0 to files
-	std::ofstream P0_file("fused_inv_covariance_0.csv");
-	std::ofstream P0x0_file("fused_inv_covariance_x_mean_0.csv");
+	std::ofstream P0_file("output/n_sensors=6/inv_covariance_0.csv");
+	std::ofstream P0x0_file("output/n_sensors=6/inv_covariance_x_mean_0.csv");
 
 	for (uint32_t t = 0; t < timesteps; t++)
 	{

@@ -152,7 +152,7 @@ void ppfci_encrypted_fusion(
 	// ATTEMPT TO DEBUG
 	mpz_t gamma;
 	mpz_init(gamma);
-	mpz_ui_pow_ui(gamma, 2, 15);
+	mpz_ui_pow_ui(gamma, 2, 20);
 	mpf_t mpf_true_den;
 	mpf_init(mpf_true_den);
 	rho_inv(mpf_true_den, m_den, gamma, ptspace);
