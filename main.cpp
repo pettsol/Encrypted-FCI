@@ -13,7 +13,7 @@ int main()
 	uint32_t keysize = 1024;
 	uint32_t dim = 4;
 	//uint32_t n_sensors = 6;
-	uint32_t n_datasets = 10;
+	uint32_t n_datasets = 100;
 	uint32_t timesteps = 150;
 
 	uint32_t sensor_array[] = {2, 4, 6, 8, 10, 15};
@@ -51,7 +51,7 @@ int main()
 	// Multiply before - it is convenient and saves a lot of time!
 	mpz_mul(ppaN2, ppaN, ppaN);
 
-	// WE ITERATE THROUGH ALL 10 DATASETS	
+	// WE ITERATE THROUGH ALL DATASETS	
 	for (uint32_t dataset = 0; dataset < n_datasets; dataset++)
 	{
 
@@ -189,7 +189,7 @@ int main()
 		}
 
 		// Proceed by fusing the encrypted data
-		std::cout << "*** FUSING ENCRYPTED DATA FROM " << sensor_array[number]  << " SENSORS AT TIMESTEP " << t+1 << " IN DATASET " << dataset << " ***" << std::endl;
+		std::cout << "*** FUSING ENCRYPTED DATA FROM " << sensor_array[number]  << " SENSORS AT TIMESTEP " << t+1 << " IN DATASET " << dataset+1 << " ***" << std::endl;
 		ppfci_encrypted_fusion(c_P0, c_P0x0, m_den, rand_state, sk[0], timestep, y, N, ppaN,
 					ppaN2, c_trace, C_trace, C_P, C_Px, msgsize, dim, n_sensors);
 
