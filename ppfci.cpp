@@ -207,21 +207,24 @@ void ppfci_decrypt(
 		const mpz_t c_P0[],
 		const mpz_t c_P0x0[],
 		const mpz_t m_den,
-		const mpz_t upk[],
+		const mpz_t usk[],
 		const mpz_t msk,
 		const mpz_t y,
 		const uint32_t msgsize,
 		const uint32_t dim,
 		const uint32_t n_sensors)
 {
+	// NB! WE ONLY NEED TO RECOVER THE SECRET KEYS ONCE,
+	//     AND, THEREFORE, ASSUME THAT THIS IS DONE BEFORE
+	//     WE DECRYPT.
 	// We have to evaluate the labeled program P(f, tau_i)
 	// First we need to recover the secret keys.
-	mpz_t *usk = new mpz_t[n_sensors];
-	for (uint32_t i = 0; i < n_sensors; i++)
-	{
-		mpz_init(usk[i]);
-		joye_libert_decrypt(usk[i], upk[i], msk, y, msgsize);
-	}
+	//mpz_t *usk = new mpz_t[n_sensors];
+	//for (uint32_t i = 0; i < n_sensors; i++)
+	//{
+	//	mpz_init(usk[i]);
+	//	joye_libert_decrypt(usk[i], upk[i], msk, y, msgsize);
+	//}
 
 	// We then need to compute the b's
 	mpz_t label_counter, input;
@@ -389,7 +392,7 @@ void ppfci_decrypt(
 		mu_he_decrypt(P0x0[i], c_P0x0[i], b_wP0x0[i], msk, y, msgsize);
 	}
 
-	delete[] usk;
+	//delete[] usk;
 	delete[] b_P;
 	delete[] b_Px;
 	delete[] b_trace;
@@ -429,37 +432,6 @@ void ppfci_normalize(
 	{
 		rho_inv(tmp_float, P0x0[i], c_gamma, ptspace);
 		P0x0_vector[i] = mpf_get_d(tmp_float);
-	}
-	
-	// We need to check if we should normalize
-	if (mpz_gcd_ui(NULL, m_den, 2) != 1)
-	{
-		mpz_t tmp;
-		mpz_init(tmp);
-		mpz_add_ui(tmp, m_den, 1);
-		
-		// We need to map m_den and tmp to doubles,
-		// compute the ratio tmp/m_den, and multiply each
-		// element in P0_matrix and P0x0_vector with the
-		// ratio to normalize.
-		double m_den_double, tmp_double;
-		rho_inv(tmp_float, m_den, gamma, ptspace);
-		m_den_double = mpf_get_d(tmp_float);
-		rho_inv(tmp_float, tmp, gamma, ptspace);
-		tmp_double = mpf_get_d(tmp_float);
-		double ratio = tmp_double/m_den_double;
-
-		// Normalize P0
-		for (int i = 0; i < dim*dim; i++)
-		{
-			P0_matrix[i] = P0_matrix[i] * ratio;
-		}
-
-		// Normalize P0x0
-		for (int i = 0; i < dim; i++)
-		{
-			P0x0_vector[i] = P0x0_vector[i] * ratio;
-		}
 	}
 }
 

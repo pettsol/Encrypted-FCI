@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <unistd.h>
+#include <chrono>
 
 int main()
 {
@@ -10,11 +11,14 @@ int main()
 	// and N usk and upk.
 	// We need to generate N ppa encryption keys
 	uint32_t msgsize = 128;
-	uint32_t keysize = 1024;
+	uint32_t keysize; //= 1024;
 	uint32_t dim = 4;
 	//uint32_t n_sensors = 6;
 	uint32_t n_datasets = 1;
 	uint32_t timesteps = 150;
+
+	uint32_t keysize_array[] = {1024, 2048, 3072};
+	size_t total_keysizes(sizeof(keysize_array) / sizeof(uint32_t));
 
 	uint32_t sensor_array[] = {2, 4, 6, 8, 10, 15};
 	size_t total(sizeof(sensor_array) / sizeof(uint32_t));
@@ -22,6 +26,31 @@ int main()
 	gmp_randstate_t rand_state;
 	gmp_randinit_mt(rand_state);
 
+	// WE ITERATE OVER ALL KEYSIZES
+	for (uint32_t n_keysize = 0; n_keysize < total_keysizes; n_keysize++)
+	{
+	
+	keysize = keysize_array[n_keysize];
+
+	char key_buf[100];
+	sprintf(key_buf, "latency/keysize_%u/sensor_encryption_latency.csv",
+			keysize_array[n_keysize]);
+	std::string encrypt_latency = key_buf;
+
+	sprintf(key_buf, "latency/keysize_%u/encrypted_fusion_latency.csv",
+			keysize_array[n_keysize]);
+	std::string fusion_latency = key_buf;
+
+	sprintf(key_buf, "latency/keysize_%u/decryption_latency.csv", 
+			keysize_array[n_keysize]);
+	std::string decryption_latency = key_buf;
+
+	std::ofstream Encryption_latency_file, Fusion_latency_file, Decryption_latency_file;
+
+	Encryption_latency_file.open(encrypt_latency);
+	Fusion_latency_file.open(fusion_latency);
+	Decryption_latency_file.open(decryption_latency);
+	
 	// WE ITERATE OVER ALL NUMBERS OF SENSORS
 	for (uint32_t number = 0; number < total; number++)
 	{
@@ -71,7 +100,7 @@ int main()
 	Pm_file.open(covariance_string);
 	P_file.open(inv_covariance_string);
 	Px_file.open(inv_covariance_x_mean_string);
-	
+
 	// We need to write the fused P0 and P0x0 to files
 	sprintf(buf, "output/n_sensors=%u/inv_covariance_%u.csv", sensor_array[number], dataset);
 	std::string inv_covariance_string_out = buf;
@@ -185,23 +214,55 @@ int main()
 
 		// First encrypt the data from each sensor using the
 		// sensor-specific secret key
+		auto start = std::chrono::high_resolution_clock::now();
+
 		for (uint32_t i = 0; i < n_sensors; i++)
 		{
 			mpz_init(c_trace[i]);
+
+			// Start clock
+			start = std::chrono::high_resolution_clock::now();
 			ppfci_sensor_encrypt(c_trace[i], label, rand_state, &C_trace[i], 
 					&C_P[i*(dim*dim)], &C_Px[i*dim], &Pm[i*(dim*dim) + t*(dim*dim*n_sensors)], 
 					&P[i*(dim*dim) + t*(dim*dim*n_sensors)], &Px[i*dim + t*(dim*n_sensors)], 
 					usk[i], y, N, sk[i+1], timestep, ppaN, ppaN2, msgsize, dim, n_sensors);
+			
 		}
+
+		// Only write the most recent encryption latency. Writing all is not required.
+		// Stop clock
+		auto stop = std::chrono::high_resolution_clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>
+				(stop - start);
+
+		Encryption_latency_file << duration.count()  << " ";
 
 		// Proceed by fusing the encrypted data
 		std::cout << "*** FUSING ENCRYPTED DATA FROM " << sensor_array[number]  << " SENSORS AT TIMESTEP " << t+1 << " IN DATASET " << dataset+1 << " ***" << std::endl;
+		
+		// Start clock
+		start = std::chrono::high_resolution_clock::now();
 		ppfci_encrypted_fusion(c_P0, c_P0x0, m_den, rand_state, sk[0], timestep, y, N, ppaN,
 					ppaN2, c_trace, C_trace, C_P, C_Px, msgsize, dim, n_sensors);
 
-		// Decrypt the fused data
-		ppfci_decrypt(P0, P0x0, label_start, c_P0, c_P0x0, m_den, upk, p, y, msgsize, dim, n_sensors);
+		// Stop clock
+		stop = std::chrono::high_resolution_clock::now();
 
+		duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+		Fusion_latency_file << duration.count() << " ";
+
+		// Start clock
+		start = std::chrono::high_resolution_clock::now();
+		// Decrypt the fused data
+		ppfci_decrypt(P0, P0x0, label_start, c_P0, c_P0x0, m_den, usk, p, y, msgsize, dim, n_sensors);
+
+		// Stop clock
+		stop = std::chrono::high_resolution_clock::now();
+
+		duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+		Decryption_latency_file << duration.count() << " ";
+
+	
 		// Map back to floating point numbers and normalize
 		ppfci_normalize(P0_matrix, P0x0_vector, P0, P0x0, m_den, ptspace, gamma, dim);
 
@@ -247,6 +308,18 @@ int main()
 	delete[] upk;
 	delete[] usk;
 	delete[] sk;
+	
+	// Add a newline
+	Encryption_latency_file << std::endl;
+	Fusion_latency_file << std::endl;
+	Decryption_latency_file << std::endl;
+
+	}
+
+	// Close the files
+	Encryption_latency_file.close();
+	Fusion_latency_file.close();
+	Decryption_latency_file.close();
 	}
 	std::cout << " *** FUSION OF ALL DATASETS COMPLETE ***"  << std::endl;
 }
