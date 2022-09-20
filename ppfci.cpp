@@ -92,6 +92,7 @@ void ppfci_sensor_encrypt(
 		mu_he_encrypt(&C_Px[i], rand_state, b, usk, Px[i], y, N, label, msgsize);
 		mpz_add_ui(label, label, 1);
 	}
+
 }
 
 void ppfci_encrypted_fusion(
@@ -150,7 +151,8 @@ void ppfci_encrypted_fusion(
 	// Compute the weights and multiply
 	he_ct numerator, weight;
 	uint32_t dim2 = dim*dim;
-	mpz_t c_P0_array[n_sensors*dim2], c_P0x0_array[n_sensors*dim];
+	mpz_t *c_P0_array = new mpz_t[n_sensors*dim2];
+	mpz_t *c_P0x0_array = new mpz_t[n_sensors*dim];
 	for (uint32_t i = 0; i < n_sensors; i++)
 	{
 		// Compute encrypted weight for sensor system i
@@ -193,6 +195,9 @@ void ppfci_encrypted_fusion(
 			mu_he_eval_add(c_P0x0[i], c_P0x0[i], c_P0x0_array[j*dim + i], N);
 		}
 	}
+
+	delete[] c_P0_array;
+	delete[] c_P0x0_array;
 }
 
 void ppfci_decrypt(
@@ -211,7 +216,7 @@ void ppfci_decrypt(
 {
 	// We have to evaluate the labeled program P(f, tau_i)
 	// First we need to recover the secret keys.
-	mpz_t usk[n_sensors];
+	mpz_t *usk = new mpz_t[n_sensors];
 	for (uint32_t i = 0; i < n_sensors; i++)
 	{
 		mpz_init(usk[i]);
@@ -225,9 +230,9 @@ void ppfci_decrypt(
 
 	uint32_t dim2 = dim*dim;
 	// Declare array to hold b's corresponding to P, Px, and Trace
-	mpz_t b_P[n_sensors*dim2];
-	mpz_t b_Px[n_sensors*dim];
-	mpz_t b_trace[n_sensors];
+	mpz_t *b_P = new mpz_t[n_sensors*dim2];
+	mpz_t *b_Px = new mpz_t[n_sensors*dim];
+	mpz_t *b_trace = new mpz_t[n_sensors];
 
 	for (uint32_t i = 0; i < n_sensors; i++)
 	{
@@ -255,7 +260,7 @@ void ppfci_decrypt(
 		mpz_mod(input, input, ptspace);
 
 	        size_t size_array = (mpz_sizeinbase(input, 2) + CHAR_BIT-1)/CHAR_BIT;
-       		uint8_t input_array[size_array] = {0};
+       		uint8_t *input_array = new uint8_t[size_array] {0};
 		size_t size;
 	        mpz_export(input_array, &size, 1, 1, 0, 0, input);
 		sha256_process_message(digest, input_array, size_array);
@@ -266,6 +271,8 @@ void ppfci_decrypt(
 	
 		mpz_add_ui(label, label, 1);
 
+		delete[] input_array;
+
 		// For the P matrix encryptions
 		for (uint32_t j = 0; j < dim2; j++)
 		{
@@ -275,7 +282,7 @@ void ppfci_decrypt(
 			mpz_add(input, usk[i], label);
 			mpz_mod(input, input, ptspace);
 	        	size_t size_array = (mpz_sizeinbase(input, 2) + CHAR_BIT-1)/CHAR_BIT;
-       			uint8_t input_array[size_array] = {0};
+       			uint8_t *input_array = new uint8_t[size_array] {0};
 	        	mpz_export(input_array, &size, 1, 1, 0, 0, input);
 			size_t size;
 			sha256_process_message(digest, input_array, size_array);
@@ -284,6 +291,8 @@ void ppfci_decrypt(
 			mpz_import(b_P[j + i*dim2], 32, 1, 1, 0, 0, digest);
 			mpz_mod(b_P[j + i*dim2], b_P[j + i*dim2], ptspace);
 			mpz_add_ui(label, label, 1);
+
+			delete[] input_array;
 		}
 
 		// For the Px vector
@@ -292,7 +301,7 @@ void ppfci_decrypt(
 			mpz_add(input, usk[i], label);
 			mpz_mod(input, input, ptspace);
 	        	size_t size_array = (mpz_sizeinbase(input, 2) + CHAR_BIT-1)/CHAR_BIT;
-       			uint8_t input_array[size_array] = {0};
+       			uint8_t *input_array = new uint8_t[size_array] {0};
 			size_t size;
 	        	mpz_export(input_array, &size, 1, 1, 0, 0, input);
 			sha256_process_message(digest, input_array, size_array);
@@ -301,6 +310,8 @@ void ppfci_decrypt(
 			mpz_import(b_Px[j + i*dim], 32, 1, 1, 0, 0, digest);
 			mpz_mod(b_Px[j + i*dim], b_Px[j + i*dim], ptspace);
 			mpz_add_ui(label, label, 1);
+
+			delete[] input_array;
 		}
 	}
 
@@ -318,8 +329,8 @@ void ppfci_decrypt(
 		mpz_mod(b_sum, b_sum, ptspace);
 	}
 
-	mpz_t b_wP0[dim2];
-	mpz_t b_wP0x0[dim];
+	mpz_t *b_wP0 = new mpz_t[dim2];
+	mpz_t *b_wP0x0 = new mpz_t[dim];
 
 	for (int i = 0; i < dim2; i++)
 	{
@@ -378,6 +389,12 @@ void ppfci_decrypt(
 		mu_he_decrypt(P0x0[i], c_P0x0[i], b_wP0x0[i], msk, y, msgsize);
 	}
 
+	delete[] usk;
+	delete[] b_P;
+	delete[] b_Px;
+	delete[] b_trace;
+	delete[] b_wP0;
+	delete[] b_wP0x0;
 }
 
 void ppfci_normalize(

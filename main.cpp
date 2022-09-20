@@ -13,7 +13,7 @@ int main()
 	uint32_t keysize = 1024;
 	uint32_t dim = 4;
 	//uint32_t n_sensors = 6;
-	uint32_t n_datasets = 100;
+	uint32_t n_datasets = 1;
 	uint32_t timesteps = 150;
 
 	uint32_t sensor_array[] = {2, 4, 6, 8, 10, 15};
@@ -28,7 +28,10 @@ int main()
 
 	uint32_t n_sensors = sensor_array[number];
 
-	mpz_t y, p, N, ppaN, upk[n_sensors], usk[n_sensors], sk[n_sensors+1];
+	mpz_t y, p, N, ppaN;
+       	mpz_t *upk = new mpz_t[n_sensors];
+	mpz_t *usk = new mpz_t[n_sensors];
+	mpz_t *sk = new mpz_t[n_sensors+1];
 	mpz_t ppaN2;
 	mpz_init(ppaN2);
 	
@@ -81,8 +84,9 @@ int main()
 	uint32_t count;
 	count = dim*dim*n_sensors*timesteps;
 
-	double Pm_double_array[count];
-	double P_double_array[count];
+	double *Pm_double_array = new double[count];
+	double *P_double_array = new double[count];
+
 	for (uint32_t i = 0; i < count; i++)
 	{
 		Pm_file >> Pm_double_array[i];
@@ -90,7 +94,7 @@ int main()
 	}
 
 	count = count / dim;
-	double Px_double_array[count];
+	double *Px_double_array = new double[count];
 	for (uint32_t i = 0; i < count; i++)
 	{
 		Px_file >> Px_double_array[i];
@@ -104,7 +108,9 @@ int main()
 	mpz_ui_pow_ui(ptspace, 2, msgsize);
 	mpz_ui_pow_ui(gamma, 2, 20);
 
-	mpz_t Pm[count*dim], P[count*dim], Px[count];
+	mpz_t *Pm = new mpz_t[count*dim];
+       	mpz_t *P = new mpz_t[count*dim];
+        mpz_t *Px = new mpz_t[count];
 
 	mpf_t input;
 	mpf_init(input);
@@ -137,23 +143,23 @@ int main()
 	mpz_init_set_ui(label, 1);
 
 	// Variables holding the encrypted sensor data
-	mpz_t c_trace[n_sensors];
-	he_ct C_P[dim*dim*n_sensors];
-	he_ct C_Px[dim*n_sensors];
-	he_ct C_trace[n_sensors];
+	mpz_t *c_trace = new mpz_t[n_sensors];
+	he_ct *C_P = new he_ct[dim*dim*n_sensors];
+	he_ct *C_Px = new he_ct[dim*n_sensors];
+	he_ct *C_trace = new he_ct[n_sensors];
 
 	// Variables holding the fused encrypted data and the sum of traces
-	mpz_t c_P0[dim*dim];
-	mpz_t c_P0x0[dim];
+	mpz_t *c_P0 = new mpz_t[dim*dim];
+	mpz_t *c_P0x0 = new mpz_t[dim];
 	mpz_t m_den;
 
 	// Variables holding the decrypted fused data
-	mpz_t P0[dim*dim];
-	mpz_t P0x0[dim];
+	mpz_t *P0 = new mpz_t[dim*dim];
+	mpz_t *P0x0 = new mpz_t[dim];
 
 	// Variables to hold the final fused data
-	double P0_matrix[dim*dim] = {0};
-	double P0x0_vector[dim] = {0};
+	double *P0_matrix = new double[dim*dim] {0};
+	double *P0x0_vector = new double[dim] {0};
 
 	// Initialize the arrays
 	for (uint32_t i = 0; i < dim*dim; i++)
@@ -222,7 +228,25 @@ int main()
 	P0_file.close();
 	P0x0_file.close();
 
+	delete[] Pm_double_array;
+	delete[] P_double_array;
+	delete[] Px_double_array;
+	delete[] Pm;
+	delete[] P;
+	delete[] Px;
+	delete[] c_trace;
+	delete[] C_P;
+	delete[] C_Px;
+	delete[] C_trace;
+	delete[] c_P0;
+	delete[] c_P0x0;
+	delete[] P0;
+	delete[] P0x0;
+
 	}
+	delete[] upk;
+	delete[] usk;
+	delete[] sk;
 	}
 	std::cout << " *** FUSION OF ALL DATASETS COMPLETE ***"  << std::endl;
 }

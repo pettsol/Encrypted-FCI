@@ -74,14 +74,16 @@ void mu_he_encrypt(
 
 	// Load label into the array
         size_t size_array = (mpz_sizeinbase(input, 2) + CHAR_BIT-1)/CHAR_BIT;
-        uint8_t input_array[size_array] = {0};
+        uint8_t *input_array = new uint8_t[size_array] {0};
 	size_t size;
 	mpz_export(input_array, &size, 1, 1, 0, 0, input);
 	
 	// Compute the digest
 	sha256_process_message(digest, input_array, size_array);
 	//hc128_process_packet(hc_cs, keystream, keystream, msgsize/8);
-	
+
+	delete[] input_array;
+
 	mpz_t ptspace;
 	//mpz_init(a);
 	mpz_init(ptspace);

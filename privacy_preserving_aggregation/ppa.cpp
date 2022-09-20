@@ -61,7 +61,6 @@ void ppa_encrypt(mpz_t c, const mpz_t ski, const mpz_t x, const mpz_t t, const m
 	mpz_t digest;
 	mpz_init(digest);
 	ppa_H(digest, t, N);
-
 //	std::cout << "Taking the power in ppa-encrypt\n";
 //	gmp_printf("Digest: %Zd\n", digest);
 //	gmp_printf("ski: %Zd\n", ski);
@@ -77,6 +76,7 @@ void ppa_encrypt(mpz_t c, const mpz_t ski, const mpz_t x, const mpz_t t, const m
 	mpz_add_ui(tmp, tmp, 1);
 	mpz_mul(c, c, tmp);
 	mpz_mod(c, c, N2);
+
 }
 
 void ppa_aggregate_decrypt(mpz_t sum, const mpz_t sk0, const mpz_t t, const mpz_t c[], const mpz_t N, const mpz_t N2, const uint32_t n_sensors)
@@ -123,13 +123,15 @@ void ppa_H(mpz_t digest, const mpz_t input, const mpz_t N)
 #ifdef DEBUG
 //	std::cout << "Size = " << size << std::endl;
 #endif
-
-	uint8_t bitstring[size/8];
+	
+	uint8_t *bitstring = new uint8_t[size] {0};
 	mpz_export(bitstring, &size, 1, 1, 0, 0, input);
 
 	// Process the bitstring with SHA-256
 	uint8_t sha_digest_array[256/8];
 	sha256_process_message(sha_digest_array, bitstring, size/8);
+
+	delete[] bitstring;
 
 	// Import the SHA-256 digest back as as unsigned integer
 	// in the range {0, ..., 2^{256} - 1}

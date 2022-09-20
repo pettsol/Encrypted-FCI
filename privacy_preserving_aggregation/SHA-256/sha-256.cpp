@@ -54,7 +54,7 @@ void sha256_process_message(uint8_t *digest, uint8_t *message, uint64_t size)
 	} else {
 		n = (size/64)*64 + 64;
 	}
-	uint32_t msg[n/4];
+	uint32_t *msg = new uint32_t[n/4];
 
 	// Compute the number of 512 bit blocks
 	int N = n / 64;
@@ -141,5 +141,8 @@ void sha256_process_message(uint8_t *digest, uint8_t *message, uint64_t size)
 		       	((ss.digest[i] >> 8) & 0x0000ff00) |
 		       	((ss.digest[i] >> 24) & 0x000000ff); u32_digest++;
 	}
+
+	delete[] msg;
+
 	//std::memcpy(digest, ss.digest, 32);
 }
