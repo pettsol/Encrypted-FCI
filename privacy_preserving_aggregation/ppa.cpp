@@ -60,7 +60,7 @@ void ppa_encrypt(mpz_t c, const mpz_t ski, const mpz_t x, const mpz_t t, const m
 	// We need to compute the hash of the time t
 	mpz_t digest;
 	mpz_init(digest);
-	ppa_H(digest, t, N);
+	ppa_H(digest, t, N, N2);
 //	std::cout << "Taking the power in ppa-encrypt\n";
 //	gmp_printf("Digest: %Zd\n", digest);
 //	gmp_printf("ski: %Zd\n", ski);
@@ -84,7 +84,7 @@ void ppa_aggregate_decrypt(mpz_t sum, const mpz_t sk0, const mpz_t t, const mpz_
 	// We need to compute the hash of the time t
 	mpz_t digest;
 	mpz_init(digest);
-	ppa_H(digest, t, N);
+	ppa_H(digest, t, N, N2);
 
 //	gmp_printf("Decrypt digest: %Zd\n", digest);
 	// Take modular power of the hash digest with the aggregation key sk0
@@ -114,7 +114,7 @@ void ppa_aggregate_decrypt(mpz_t sum, const mpz_t sk0, const mpz_t t, const mpz_
 	mpz_cdiv_q(sum, sum, N);
 }
 
-void ppa_H(mpz_t digest, const mpz_t input, const mpz_t N)
+void ppa_H(mpz_t digest, const mpz_t input, const mpz_t N, const mpz_t N2)
 {
 	// We first need to compute the SHA-256 digest of the input,
 	// to we need to parse the input as a bitstring.
@@ -143,12 +143,19 @@ void ppa_H(mpz_t digest, const mpz_t input, const mpz_t N)
 //	gmp_printf("SHA-256 digest integer: %Zd\n", sha_digest_integer);
 #endif
 	
-	// Map the sha_digest to an element of the multiplicative group
+	// Map the sha_digest to an element {2, ..., 2^{256} + 1}
+	// of the multiplicative group. Notice that we exclude 1 to avoid a
+	// degenerate solution.
 	mpz_t tmp;
 	mpz_init(tmp);
-	mpz_mul(tmp, sha_digest_integer, N);
+	mpz_add_ui(tmp, sha_digest_integer, 2);
+	// OLD //
+	//mpz_mul(tmp, sha_digest_integer, N);
 	
-	mpz_set_ui(digest, 1);
-	mpz_add(digest, digest, tmp);
+	//mpz_set_ui(digest, 1);
+	//mpz_add(digest, digest, tmp);
+
+	// Take the Nth power to get an element in ZN2*
+	mpz_powm(digest, tmp, N, N2);
 }
 

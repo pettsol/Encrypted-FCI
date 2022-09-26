@@ -10,7 +10,7 @@ int main()
 	// We need to generate muLabHE keys, i.e., 1 msk and 1 mpk,
 	// and N usk and upk.
 	// We need to generate N ppa encryption keys
-	uint32_t msgsize = 128;
+	uint32_t msgsize = 64;//128;
 	uint32_t keysize; //= 1024;
 	uint32_t dim = 4;
 	//uint32_t n_sensors = 6;
@@ -137,6 +137,12 @@ int main()
 	mpz_ui_pow_ui(ptspace, 2, msgsize);
 	mpz_ui_pow_ui(gamma, 2, 20);
 
+	// ALL CHANGES HERE //
+	mpz_t gamma_tr;
+	mpz_init(gamma_tr);
+	mpz_ui_pow_ui(gamma_tr, 2, 10);
+	// // END OF CHANGES
+
 	mpz_t *Pm = new mpz_t[count*dim];
        	mpz_t *P = new mpz_t[count*dim];
         mpz_t *Px = new mpz_t[count];
@@ -150,7 +156,7 @@ int main()
 		mpz_init(P[i]);
 
 		mpf_set_d(input, Pm_double_array[i]);
-		rho(Pm[i], input, gamma, ptspace);
+		rho(Pm[i], input, gamma_tr, ptspace);
 
 		mpf_set_d(input, P_double_array[i]);
 		rho(P[i], input, gamma, ptspace);

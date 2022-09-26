@@ -128,16 +128,20 @@ void ppfci_encrypted_fusion(
 	mpz_mod(m_den, m_den, ptspace);
 
 	// Find the inverse of m_den
-	mpz_t gamma;
-	mpz_init(gamma);
-	mpz_ui_pow_ui(gamma, 2, 20);
+	mpz_t gamma_tr;
+	mpz_init(gamma_tr);
+	mpz_ui_pow_ui(gamma_tr, 2, 10);
 	mpf_t mpf_true_den;
 	mpf_init(mpf_true_den);
-	rho_inv(mpf_true_den, m_den, gamma, ptspace);
+	rho_inv(mpf_true_den, m_den, gamma_tr, ptspace);
 	double true_den;
 	true_den = mpf_get_d(mpf_true_den);
 	double inv_den = 1/true_den;
 	mpf_set_d(mpf_true_den, inv_den);
+
+	mpz_t gamma;
+	mpz_init(gamma);
+	mpz_ui_pow_ui(gamma, 2, 20);
 	rho(m_den, mpf_true_den, gamma, ptspace);
 	
 	// Compute the encrypted cumulative sum of traces
@@ -415,8 +419,10 @@ void ppfci_normalize(
 	// c_gamma = gamma*gamma*gamma
 	mpz_t c_gamma;
 	mpz_init(c_gamma);
-	mpz_mul(c_gamma, gamma, gamma);
-	mpz_mul(c_gamma, c_gamma, gamma);
+	//mpz_mul(c_gamma, gamma, gamma);
+	//mpz_mul(c_gamma, c_gamma, gamma);
+	// 64 bit test
+	mpz_ui_pow_ui(c_gamma, 2, 50);
 
 	mpf_t tmp_float;
 	mpf_init(tmp_float);
