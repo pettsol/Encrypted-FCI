@@ -8,12 +8,12 @@
 
 int main()
 {
-	uint32_t keysize = 1024;
+	uint32_t keysize;// = 1024;
 	uint32_t msgsize = 64;
 	uint32_t timesteps = 150;
-	uint32_t n_datasets = 100;
+	uint32_t n_datasets = 1;
 	uint32_t dim = 4;
-	//uint32_t n_sensors = 2;
+	uint32_t n_sensors = 2;
 
 	mpz_t ptspace;
 	mpz_init(ptspace);
@@ -22,18 +22,18 @@ int main()
 	gmp_randstate_t state;
 	gmp_randinit_mt(state);
 
-	//uint32_t keysize_array[] = {1024, 2048, 3072};
-	//size_t total_keysizes(sizeof(keysize_array) / sizeof(uint32_t));
+	uint32_t keysize_array[] = {1024, 2048, 3072};
+	size_t total_keysizes(sizeof(keysize_array) / sizeof(uint32_t));
 
 	uint32_t sensor_array[] = {2, 4, 6, 8, 10, 15};
 	size_t total(sizeof(sensor_array) / sizeof(uint32_t));
 
 	// We iterate over all keysizes
-	//for (uint32_t n_keysize = 0; n_keysize < total_keysizes; n_keysize++)
-	//{
+	for (uint32_t n_keysize = 0; n_keysize < total_keysizes; n_keysize++)
+	{
 	
-	//keysize = keysize_array[n_keysize];
-/*
+	keysize = keysize_array[n_keysize];
+
 	char key_buf[100];
         sprintf(key_buf, "latency/keysize_%u/sensor_encryption_latency.csv",
                         keysize_array[n_keysize]);
@@ -52,7 +52,7 @@ int main()
         Encryption_latency_file.open(encrypt_latency);
         Fusion_latency_file.open(fusion_latency);
         Decryption_latency_file.open(decryption_latency);
-*/
+
 
 	// Get Paillier parameters
 	mpz_t N, y, p;
@@ -60,6 +60,7 @@ int main()
 	mpz_init(y);
 	mpz_init(p);
 
+	std::cout << "Generating Joye-Libert parameters - This may take a long time!\n";
 	joye_libert_keygen(N, y, p, msgsize, keysize);
 
 	// WE ITERATE OVER ALL NUMBERS OF SENSORS
@@ -218,11 +219,11 @@ int main()
 	for (uint32_t t = 0; t < timesteps; t++)
 	{
 		// Encrypt the sensor data	
-                //auto start = std::chrono::high_resolution_clock::now();
+                auto start = std::chrono::high_resolution_clock::now();
 		for (uint32_t i = 0; i < n_sensors; i++)
 		{
                         // Start clock
-                  //      start = std::chrono::high_resolution_clock::now();
+                        start = std::chrono::high_resolution_clock::now();
 			efci_encrypt(c_tr[i], &c_Px[i*dim], &c_P[i*dim*dim],
 					state, Trace[t*n_sensors + i], 
 					&Px[t*dim*n_sensors + i*dim],
@@ -232,34 +233,34 @@ int main()
 
 		// Only write the most recent encryption latency. Writing all is not required.
                 // Stop clock
-                //auto stop = std::chrono::high_resolution_clock::now();
-                //auto duration = std::chrono::duration_cast<std::chrono::milliseconds>
-                //                (stop - start);
+                auto stop = std::chrono::high_resolution_clock::now();
+                auto duration_encryption = std::chrono::duration_cast<std::chrono::microseconds>
+                                (stop - start);
 
-                //Encryption_latency_file << duration.count()  << " ";
+                Encryption_latency_file << ((double)duration_encryption.count())/1000  << " ";
 
 		// Proceed by fusing the encrypted data
                 std::cout << "*** FUSING ENCRYPTED DATA FROM " << sensor_array[number]  << " SENSORS AT TIMESTEP " << t+1 << " IN DATASET " << dataset+1 << " ***" << std::endl;
 		
                 // Start clock
-                //start = std::chrono::high_resolution_clock::now();
+                start = std::chrono::high_resolution_clock::now();
 		// Fuse the data
 		efci_fusion(sum_tr, sum_Px, sum_P, c_tr, c_Px, c_P, N, dim, n_sensors);
                 // Stop clock
-                //stop = std::chrono::high_resolution_clock::now();
+                stop = std::chrono::high_resolution_clock::now();
 
-                //duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-                //Fusion_latency_file << duration.count() << " ";
+                auto duration_fusion = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+                Fusion_latency_file << ((double)duration_fusion.count())/1000 << " ";
 
                 // Start clock
-                //start = std::chrono::high_resolution_clock::now();
+                start = std::chrono::high_resolution_clock::now();
 		// Decrypt the data
 		efci_decrypt(P0x0, P0, sum_tr, sum_Px, sum_P, p, y, gamma, dim, msgsize);
                 // Stop clock
-                //stop = std::chrono::high_resolution_clock::now();
+                stop = std::chrono::high_resolution_clock::now();
 
-                //duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-                //Decryption_latency_file << duration.count() << " ";
+                auto duration_decryption = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+                Decryption_latency_file << duration_decryption.count() << " ";
 
 
 		// Write to file
@@ -291,6 +292,8 @@ int main()
         delete[] Px;
 	delete[] Trace;
         delete[] c_tr;
+	delete[] c_Px;
+	delete[] c_P;
 	delete[] traces;
         delete[] sum_Px;
         delete[] sum_P;
@@ -298,14 +301,14 @@ int main()
         delete[] P0x0;
 	}
         // Add a newline
-        //Encryption_latency_file << std::endl;
-        //Fusion_latency_file << std::endl;
-        //Decryption_latency_file << std::endl;
-	//}
+        Encryption_latency_file << std::endl;
+        Fusion_latency_file << std::endl;
+        Decryption_latency_file << std::endl;
+	}
         // Close the files
-        //Encryption_latency_file.close();
-        //Fusion_latency_file.close();
-        //Decryption_latency_file.close();
+        Encryption_latency_file.close();
+        Fusion_latency_file.close();
+        Decryption_latency_file.close();
 	}
 
 	std::cout << "FUSION OF ALL DATASETS COMPLETE" << std::endl;

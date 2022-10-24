@@ -247,9 +247,8 @@ int main()
 		efci_fusion(sum_tr, sum_Px, sum_P, c_tr, c_Px, c_P, N2, dim, n_sensors);
                 // Stop clock
                 stop = std::chrono::high_resolution_clock::now();
-
-                duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-                Fusion_latency_file << duration.count() << " ";
+                auto duration_fusion = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+                Fusion_latency_file << ((double)duration_fusion.count())/1000 << " ";
 
                 // Start clock
                 start = std::chrono::high_resolution_clock::now();
@@ -292,6 +291,8 @@ int main()
         delete[] Px;
 	delete[] Trace;
         delete[] c_tr;
+	delete[] c_Px;
+	delete[] c_P;
 	delete[] traces;
         delete[] sum_Px;
         delete[] sum_P;
